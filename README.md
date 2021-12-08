@@ -103,8 +103,6 @@ function App() {
 export default App;
 ```
 
-![image](https://user-images.githubusercontent.com/42884032/145075799-bd4e03e0-0baa-4165-bd2d-0a953ee5dd2e.png)
-
 ## 상태 가져오기
 
 `useSelector` 사용
@@ -156,7 +154,7 @@ function AuthButtons() {
 
 ## useSelector 사용시 RootState 없이 타입 추론되게 하기
 
-다시 공부하면서 발견한 내용이다. 매번 RootState 타입을 가져왔었는데 이런 방법이 존재했네;;
+다시 공부하면서 발견한 내용이다. 매번 `RootState` 타입을 가져왔었는데 이런 방법이 존재했네;;
 
 ```typescript
 // slices/index.ts
@@ -211,7 +209,7 @@ export default function useAuthActions() {
 }
 ```
 
-2번 방법의 경우 제공되는 유틸함수 이용(`bindActionCreators`)를 이용했다. 훨씬도 간결하고 깔끔해 졌으며, 타입 추론까지 된다.
+2번 방법의 경우 제공되는 유틸함수 이용(`bindActionCreators`)를 이용했다. 훨씬도 간결하고 깔끔해 졌다.
 또한 각 액션 생성 함수들의 파라미터 타입을 따로 알지 않아도 되기 때문에 편하다.
 
 ```typescript
@@ -233,7 +231,58 @@ export default function useAuthActions() {
 
 ## 리덕스로 할일 목록 만들기
 
-...
+Redux Toolkit을 사용할 때는 불변성을 유지하지 않아도 자동으로 관리되기 때문에 push, slice 등의 함수를 사용해도 괜찮다.
+**다만 리듀서에서 반환하는 값이 없을 때는 라이브러리에서 불변성 유지를 자동으로 해주지만, 값을 반환한다면 불변성 자동 관리가 생략된다.**
+
+```typescript
+import {createSlice, nanoid, PayloadAction} from '@reduxjs/toolkit';
+
+export interface Todo {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+const initialState: Todo[] = [
+  {id: '1', text: 'RN 배우기', done: true},
+  {id: '2', text: 'React 배우기', done: false},
+  {id: '3', text: 'React Redux 배우기', done: false},
+];
+
+const todoSlice = createSlice({
+  name: 'todos',
+  initialState,
+  reducers: {
+    add: {
+      // @see https://redux-toolkit.js.org/api/createSlice#customizing-generated-action-creators
+      prepare(text: string) {
+        return {payload: {id: nanoid(), text}};
+      },
+      reducer(state, action: PayloadAction<{id: string; text: string}>) {
+        state.push({
+          ...action.payload,
+          done: false,
+        });
+      },
+    },
+    remove(state, action: PayloadAction<string>) {
+      return state.filter(todo => todo.id !== action.payload);
+    },
+    toggle(state, action: PayloadAction<string>) {
+      const selected = state.find(todo => todo.id === action.payload);
+      if (selected === undefined) {
+        return;
+      }
+      selected.done = !selected.done;
+    },
+  },
+});
+
+export const {add, remove, toggle} = todoSlice.actions;
+export default todoSlice.reducer;
+```
+
+![2021-12-08_22-57-43 (1)](https://user-images.githubusercontent.com/42884032/145220730-0c10d24a-6d94-41e9-b8f4-f2eb5f93a6e9.gif)
 
 <hr />
 
