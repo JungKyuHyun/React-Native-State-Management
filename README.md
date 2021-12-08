@@ -286,6 +286,144 @@ export default todoSlice.reducer;
 
 <hr />
 
+# 비동기 작업
+
+여러가지가 존재하지만, `redux-thunk`를 통해 만들어 보자.
+`redux-thunk`의 경우 함수를 기반으로 작동하며 `Redux Toolkit`에 내장되어 있다. 나는 사실 이 방법이 리덕스에서 사용하는 가장 기본적인 비동기 처리지만 이상하게 이것만 직접 사용해 본적은 없다.
+
+리덕스를 사용할 때는 `redux-sage`, `redux-observable`으로만 비동기 처리를 했었는데 지금은 로딩, 오류 등의 상태관리가 너무 귀찮기도 하고 리덕스의 타이핑이 줄어도 많기도 하여, `react-query`를 많이 사용하다 보니 더더욱 접할일이 없었다. 왜 안사용했는지도 지금은 조금 더 명확하게 알 수 있을거 같아 공부할겸 지금 해보자.
+
+`REST API` 호출할 때는 많이 사용하는 `Axios` 라이브러리를 사용해 보겠다.
+
+## 설치
+
+```bash
+$ yarn add axios
+$ yarn add -D @types/axios
+```
+
+## 미들웨어 적용
+
+기존 `createStore`에서 `configureStore`로 변경한다.
+
+```typescript
+import {configureStore} from '@reduxjs/toolkit';
+// ...
+
+// const store = createStore(rootReducer);
+const store = configureStore({reducer: rootReducer}); // <-- here!
+
+function App() {
+  return (
+    <Provider store={store}>
+      <PostsApp />
+    </Provider>
+  );
+}
+
+export default App;
+```
+
+## 기본 사용법
+
+`createAsyncThunk` 함수는 `Promise`를 반환하는 함수를 기반으로 함수가 호출됐을 때, 성공하거나 실패했을 때 사용할 액션들을 제공한다.
+추후에 `dispatch(fetchPosts())`하면 상황별로 이 액션들이 `dispatch`된다.
+
+```typescript
+import {
+  createAsyncThunk,
+  createSlice,
+  PayloadAction,
+  SerializedError,
+} from '@reduxjs/toolkit';
+import {getPosts} from '../api/getPosts';
+import {Post} from '../api/types';
+
+export const fetchPosts = createAsyncThunk('posts/fetchUsers', getPosts);
+
+interface PostsState {
+  posts: {
+    loading: boolean;
+    data: Post[] | null;
+    error: SerializedError | null;
+  };
+}
+
+const initialState: PostsState = {
+  posts: {
+    loading: false,
+    data: null,
+    error: null,
+  },
+};
+
+const postsSlice = createSlice({
+  name: 'posts',
+  initialState,
+  reducers: {},
+  extraReducers: {
+    [fetchPosts.pending.type]: state => {
+      state.posts = {
+        loading: true,
+        data: null,
+        error: null,
+      };
+    },
+    [fetchPosts.fulfilled.type]: (state, action: PayloadAction<Post[]>) => {
+      state.posts.data = action.payload;
+      state.posts.loading = false;
+    },
+    [fetchPosts.rejected.type]: (
+      state,
+      action: ReturnType<typeof fetchPosts.rejected>,
+    ) => {
+      state.posts.error = action.error;
+      state.posts.loading = false;
+    },
+  },
+});
+
+export default postsSlice.reducer;
+```
+
+참고로 `createSlice`할 때 `fetchPosts`를 통하여 `dispatch`된 액션들을 처리하는 리듀서 함수들은 `extraReducers`에 작성해야 한다. 왜냐하면 이 경우에 액션 생성함수와 리듀서를 동시에 만드는게 아니라 이미 정의된 액션들의 리듀서를 작성하는 것이기 때문이다.
+
+이번에 만들 hook은 위에 훅과 달리 상태와 액션이 동시에 필요하여 한번에 만든다.
+
+```typescript
+import {useCallback, useEffect} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import {fetchPosts} from '../slices/posts';
+
+interface Props {
+  enabled: boolean;
+}
+
+export default function usePosts({enabled}: Props) {
+  const posts = useSelector(state => state.posts);
+  const dispatch = useDispatch();
+  const fetchData = useCallback(() => {
+    dispatch(fetchPosts());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    fetchData();
+  }, [enabled, fetchData]);
+
+  return {
+    ...posts,
+    refetch: fetchData,
+  };
+}
+```
+
+![2021-12-09_02-18-14 (1)](https://user-images.githubusercontent.com/42884032/145253724-ec55ff0c-0b48-4c38-9b81-df0843c16b5f.gif)
+
+<hr />
+
 # Recoil
 
 ...
