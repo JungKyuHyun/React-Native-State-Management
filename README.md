@@ -28,7 +28,8 @@ $ npx react-native init StateManagementInReactNative --template react-native-tem
 ## 설치
 
 ```bash
-$ yarn add redux react-redux @reduxjs/toolkit @types/react-redux
+$ yarn add redux react-redux @reduxjs/toolkit
+$ yarn add -D @types/react-redux
 ```
 
 ## 기본 구현체
@@ -426,4 +427,4 @@ export default function usePosts({enabled}: Props) {
 
 # Recoil
 
-...
+`recoil`에 대한 설명이 길어져 [Recoil 기초 개념 및 사용법](https://ajdkfl6445.gitbook.io/study/react/recoil)으로 대체하겠다.

@@ -1,12 +1,19 @@
 import {useMemo} from 'react';
-import {useDispatch} from 'react-redux';
-import {bindActionCreators} from 'redux';
-import {authorize, logout} from '../slices/auth';
+import {useSetRecoilState} from 'recoil';
+import {authState, User} from '../atoms/auth';
 
 export default function useAuthActions() {
-  const dispatch = useDispatch();
+  const set = useSetRecoilState(authState);
+
   return useMemo(
-    () => bindActionCreators({authorize, logout}, dispatch),
-    [dispatch],
+    () => ({
+      authorize: (user: User) => {
+        set({user});
+      },
+      logout: () => {
+        set({user: null});
+      },
+    }),
+    [set],
   );
 }
