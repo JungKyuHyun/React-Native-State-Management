@@ -429,12 +429,6 @@ export default function usePosts({enabled}: Props) {
 
 `recoil`에 대한 설명이 길어져 [Recoil 기초 개념 및 사용법](https://ajdkfl6445.gitbook.io/study/react/recoil)으로 대체하겠다.
 
-## Log
-
-1. Redux Toolkit으로 앱 작성: f278476078e8a76817047fd5c131cee1102eaf11
-2. RTK로 작성된 AuthApp을 recoil로 마이그레이션: 12f4f6a5b27a90a66759a8ab0ee3fb88303fd9d5
-3. RTK로 작성된 TodoApp을 recoil로 마이그레이션: 9e6b1234ede91a7ad224f53893b3e01acb9522a2
-
 ## useRecoilCallback(callback, deps)로 최적화 하기
 
 먼저 기존에 작업된 코드를 보자.
@@ -522,3 +516,17 @@ export default function useTodosActions() {
 ```
 
 이렇게 하면 `nextTodoId`가 바뀔 때마다 함수들이 새로 생성되지 않고 `add` 함수가 호출될 때 그 내부에서 현재의 `nextTodoId`를 조회한 뒤 해당 값을 사용해 새로운 항목을 등록하게 된다.
+
+<hr />
+
+# Log
+
+1. Redux Toolkit으로 앱 작성: f278476078e8a76817047fd5c131cee1102eaf11
+2. RTK로 작성된 AuthApp을 recoil로 마이그레이션: 12f4f6a5b27a90a66759a8ab0ee3fb88303fd9d5
+3. RTK로 작성된 TodoApp을 recoil로 마이그레이션: 9e6b1234ede91a7ad224f53893b3e01acb9522a2
+4. ecoil로 작성한 useTodosActions 최적화: 3c5b04a0ebd79f50a4c900b9804bccd063099890
+5. RTK로 작성된 PostsApp을 recoil로 마이그레이션: 2b356d6b556dad39e9a5267e314eafac24330c86
+
+<hr />
+
+끝!
