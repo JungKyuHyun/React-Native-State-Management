@@ -1,18 +1,26 @@
 import {useCallback, useEffect} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {fetchPosts} from '../slices/posts';
+import {useRecoilState} from 'recoil';
+import {getPosts} from '../api/getPosts';
+import {postsState} from '../atoms/posts';
 
 interface Options {
   enabled?: boolean;
 }
 
 export default function usePosts({enabled = true}: Options = {}) {
-  const posts = useSelector(state => state.posts.posts);
-  const dispatch = useDispatch();
+  const [{loading, data, error}, set] = useRecoilState(postsState);
 
-  const fetchData = useCallback(() => {
-    dispatch(fetchPosts());
-  }, [dispatch]);
+  const fetchData = useCallback(async () => {
+    set({loading: true, data: null, error: null});
+    try {
+      const posts = await getPosts();
+      set({loading: false, data: posts, error: null});
+    } catch (err) {
+      if (err instanceof Error) {
+        set({loading: false, data: null, error: err});
+      }
+    }
+  }, [set]);
 
   useEffect(() => {
     if (!enabled) {
@@ -22,7 +30,9 @@ export default function usePosts({enabled = true}: Options = {}) {
   }, [enabled, fetchData]);
 
   return {
-    ...posts,
+    data,
+    loading,
+    error,
     refetch: fetchData,
   };
 }
