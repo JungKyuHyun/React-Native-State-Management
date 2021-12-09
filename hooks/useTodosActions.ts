@@ -1,15 +1,21 @@
 import {useMemo} from 'react';
-import {useRecoilValue, useSetRecoilState} from 'recoil';
+import {useRecoilCallback, useSetRecoilState} from 'recoil';
 import {nextTodoId, todosState} from '../atoms/todos';
 
 export default function useTodosActions() {
   const set = useSetRecoilState(todosState);
-  const nextId = useRecoilValue(nextTodoId);
+  const add = useRecoilCallback(
+    ({snapshot}) =>
+      async (text: string) => {
+        const nextId = await snapshot.getPromise(nextTodoId);
+        set(prev => prev.concat({id: nextId.toString(), text, done: false}));
+      },
+    [],
+  );
 
   return useMemo(
     () => ({
-      add: (text: string) =>
-        set(prev => prev.concat({id: nextId.toString(), text, done: false})),
+      add,
       remove: (id: string) => set(prev => prev.filter(todo => todo.id !== id)),
       toggle: (id: string) =>
         set(prev =>
@@ -18,6 +24,6 @@ export default function useTodosActions() {
           ),
         ),
     }),
-    [nextId, set],
+    [add, set],
   );
 }

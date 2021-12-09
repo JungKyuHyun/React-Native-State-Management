@@ -428,3 +428,97 @@ export default function usePosts({enabled}: Props) {
 # Recoil
 
 `recoil`에 대한 설명이 길어져 [Recoil 기초 개념 및 사용법](https://ajdkfl6445.gitbook.io/study/react/recoil)으로 대체하겠다.
+
+## Log
+
+1. Redux Toolkit으로 앱 작성: f278476078e8a76817047fd5c131cee1102eaf11
+2. RTK로 작성된 AuthApp을 recoil로 마이그레이션: 12f4f6a5b27a90a66759a8ab0ee3fb88303fd9d5
+3. RTK로 작성된 TodoApp을 recoil로 마이그레이션: 9e6b1234ede91a7ad224f53893b3e01acb9522a2
+
+## useRecoilCallback(callback, deps)로 최적화 하기
+
+먼저 기존에 작업된 코드를 보자.
+
+```typescript
+import {useMemo} from 'react';
+import {useRecoilValue, useSetRecoilState} from 'recoil';
+import {nextTodoId, todosState} from '../atoms/todos';
+
+export default function useTodosActions() {
+  const set = useSetRecoilState(todosState);
+  const nextId = useRecoilValue(nextTodoId);
+
+  return useMemo(
+    () => ({
+      add: (text: string) =>
+        set(prev => prev.concat({id: nextId.toString(), text, done: false})),
+      remove: (id: string) => set(prev => prev.filter(todo => todo.id !== id)),
+      toggle: (id: string) =>
+        set(prev =>
+          prev.map(todo =>
+            todo.id === id ? {...todo, done: !todo.done} : todo,
+          ),
+        ),
+    }),
+    [nextId, set],
+  );
+}
+```
+
+`useMemo`가 `nextId`에 의존하고 있어, `nextId`가 바뀔때마다 `useMemo`에 등록한 함수가 한번 더 호출되면서 새로운 객체가 만들어 지고 있다.
+사실 성능적으로는 문제가 크게 없는 부분이긴 하지만, 최적화하는 법을 배울겸 수정해 보자.
+
+[[공식문서 - useRecoilCallback](https://recoiljs.org/docs/api-reference/core/useRecoilCallback/)]
+
+`useRecoilCallback`은 `useCallback`가 유사하지만, `recoil` 상태(`state`)에 동작하는 콜백용 api를 제공해준다.
+
+```typescript
+type CallbackInterface = {
+  snapshot: Snapshot,
+  gotoSnapshot: Snapshot => void,
+  set: <T>(RecoilState<T>, (T => T) | T) => void,
+  reset: <T>(RecoilState<T>) => void,
+  transact_UNSTABLE: ((TransactionInterface) => void) => void,
+};
+
+function useRecoilCallback<Args, ReturnValue>(
+  callback: CallbackInterface => (...Args) => ReturnValue,
+  deps?: $ReadOnlyArray<mixed>,
+): (...Args) => ReturnValue
+```
+
+위에서 보다시피 콜백 함수에는 여러 인터페이스가 제공되며, 위 경우 `snapshot`을 통해 최적화 가능하다. 스냅샷의 경우 `recoil atom state`에 대한 읽기 전용 보기를 제공하며, `Promise`형태로 반환된다.
+
+```typescript
+import {useMemo} from 'react';
+import {useRecoilCallback, useSetRecoilState} from 'recoil';
+import {nextTodoId, todosState} from '../atoms/todos';
+
+export default function useTodosActions() {
+  const set = useSetRecoilState(todosState);
+  const add = useRecoilCallback(
+    ({snapshot}) =>
+      async (text: string) => {
+        const nextId = await snapshot.getPromise(nextTodoId);
+        set(prev => prev.concat({id: nextId.toString(), text, done: false}));
+      },
+    [],
+  );
+
+  return useMemo(
+    () => ({
+      add,
+      remove: (id: string) => set(prev => prev.filter(todo => todo.id !== id)),
+      toggle: (id: string) =>
+        set(prev =>
+          prev.map(todo =>
+            todo.id === id ? {...todo, done: !todo.done} : todo,
+          ),
+        ),
+    }),
+    [add, set],
+  );
+}
+```
+
+이렇게 하면 `nextTodoId`가 바뀔 때마다 함수들이 새로 생성되지 않고 `add` 함수가 호출될 때 그 내부에서 현재의 `nextTodoId`를 조회한 뒤 해당 값을 사용해 새로운 항목을 등록하게 된다.
