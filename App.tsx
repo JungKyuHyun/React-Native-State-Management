@@ -8,18 +8,14 @@
  * @format
  */
 
-import {configureStore} from '@reduxjs/toolkit';
 import React from 'react';
 import {RecoilRoot} from 'recoil';
-import AuthApp from './components/AuthApp';
-import rootReducer from './slices';
-
-const store = configureStore({reducer: rootReducer});
+import TodoApp from './components/TodoApp';
 
 function App() {
   return (
     <RecoilRoot>
-      <AuthApp />
+      <TodoApp />
     </RecoilRoot>
   );
 }
